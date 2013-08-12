@@ -9,12 +9,17 @@ object Block {
 case class Block private(private val _top: List[Block], spacer: Int, area: Double, item: Item) {
   def top = _top.reverse
   val width: Int = max(1, _top.map(_.width).sum) + spacer
+  val topWidth = _top.map(_.width).sum
   def idealWidth(targetRatio: Double) = sqrt(area / targetRatio)
   val height: Double = area / width
   val ratio: Double = height / width
   val firstDate: Date = (item.date :: _top.map(_.firstDate)).min
 
   def add(other: Block) = this.copy(_top = other :: _top)
+  def stack(other: Block) = {
+    require(other._top.isEmpty)
+    this.copy(_top = List(other.copy(_top = this.top)))
+  }
   def widen = this.copy(spacer=spacer+1)
 
   override def toString = {
@@ -27,6 +32,11 @@ case class Block private(private val _top: List[Block], spacer: Int, area: Doubl
     Block.indent = prev
     val c = "])"
     a + b + c
+  }
+  def toScheme: String = {
+    """#s(block %d %f "%s" "%s" (%s))"""
+      .format(width, height, item.category.head,
+              item.label.replaceAllLiterally("\"", "\\\""), top.map(_.toScheme).mkString(" "))
   }
 }
 
