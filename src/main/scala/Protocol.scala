@@ -22,7 +22,7 @@ object Protocol extends cc.spray.json.DefaultJsonProtocol {
 
   def asImmutable[A, B](m: MMap[A, B]) = Map(m.toList : _*)
   def isTransfer(i: Item) = i.category == List()
-  def read(f: File): List[Category] = {
+  def read(f: File): List[Item] = {
     val reader = new CsvMapReader(new FileReader(f), CsvPreference.STANDARD_PREFERENCE)
     val headers = reader.getHeader(true)
     val maps = Stream.continually(reader.read(headers:_*)).takeWhile(_ != null).toList
@@ -36,10 +36,7 @@ object Protocol extends cc.spray.json.DefaultJsonProtocol {
           .rename("Outflow", "outflow").transform("outflow", (str:String) => str.replace("$", "").toDouble)
           .rename("Inflow", "inflow").transform("inflow", (str:String) => str.replace("$", "").toDouble)
 
-    val items = jsons.map(_.convertTo[Item]).filterNot(isTransfer(_)).sortBy(_.date)
-    val categories =
-      for((cat, lst) <- items.groupBy(_.category.head).toList) yield Category(cat, lst)
-    categories.sortBy(- _.items.size)
+    jsons.map(_.convertTo[Item]).filterNot(isTransfer(_)).sortBy(_.date)
   }
 
 }
