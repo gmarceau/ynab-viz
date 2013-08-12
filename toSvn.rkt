@@ -3,7 +3,7 @@
          gmarceau/hash
          gmarceau/pict
          )
-(struct block (height width category label top) #:prefab)
+(struct block (width height category label amount top) #:prefab)
 
 (define category-colors 
   (list->hash 
@@ -18,7 +18,7 @@
      ("Transport" "SaddleBrown"))))
 
 
-(define width-unit 10)
+(define width-unit 30)
 (define blocks (read (open-input-file "output.ss")))
 
 (define (colorize-by-cat pic cat) 
@@ -27,7 +27,7 @@
 (define text-offset 4)
 
 (define (add-label pic label) 
-  (define t (rotate (text label) (/ pi 2)))
+  (define t (text label))
   (clip
    (refocus
     (pin-over pic
@@ -51,7 +51,9 @@
 
 (define p (apply hb-append (map render-block blocks)))
 
+(save-to-svg p "output.svg")
 (save-to-png p "output.png")
+
 
 
 

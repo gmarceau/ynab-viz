@@ -1,6 +1,6 @@
 import java.util.Date
 
-case class Item(date: Date, category: List[String], payee: String, memo: String, outflow: Double, inflow: Double) {
+case class Item(date: Date, category: List[String], payee: String, memo: String, outflow: Double, inflow: Double, adjustment: Double) {
   def label: String = {
     val skipList = List("DBT CRD", "POS DEB", "PPD", "Payroll", "Paypal", "PAYPAL", "Payee",
       "T MOBILE", "ATM FEE", "AMAZON", "Amazon", "Check ", "CREDIT", "DDA", "DEBIT", "e-Pay", "Interest Deposit",
@@ -10,6 +10,6 @@ case class Item(date: Date, category: List[String], payee: String, memo: String,
 //    println("label: " + this + " => " + result)
     result
   }
-  def amt = outflow - inflow
+  def amt = outflow - inflow + adjustment
 
 }

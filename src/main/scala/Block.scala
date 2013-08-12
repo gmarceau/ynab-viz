@@ -25,7 +25,7 @@ case class Block private(private val _top: List[Block], spacer: Int, area: Doubl
   override def toString = {
     val s = if (spacer > 0) " / %d".format(spacer) else ""
 //    val a = "%s(%d, %.2f x %d%s, $%.2f, [".format(item.category.head.take(3), item.date.getDate, height, width, s, item.amt)
-    val a = "%s(%d %.1f, $%.2f, [".format(item.category.head.take(3), item.date.getDate, width - idealWidth(Layout.targetRatio), item.amt)
+    val a = "%s(%d %.1f, $%.2f, [".format(item.category.head.take(3), item.date.getDate, width - idealWidth(Layout.targetRatio), item.outflow - item.inflow)
     val prev = Block.indent
     Block.indent = Block.indent + (" " * a.size)
     val b = top.map(_.toString).mkString("\n"+Block.indent)
@@ -34,9 +34,11 @@ case class Block private(private val _top: List[Block], spacer: Int, area: Doubl
     a + b + c
   }
   def toScheme: String = {
-    """#s(block %d %f "%s" "%s" (%s))"""
+    """#s(block %d %f "%s" "%s" %f (%s))"""
       .format(width, height, item.category.head,
-              item.label.replaceAllLiterally("\"", "\\\""), top.map(_.toScheme).mkString(" "))
+              item.label.replaceAllLiterally("\"", "\\\""),
+              item.outflow - item.inflow,
+              top.map(_.toScheme).mkString(" "))
   }
 }
 

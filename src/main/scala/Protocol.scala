@@ -18,7 +18,7 @@ object Protocol extends cc.spray.json.DefaultJsonProtocol {
       case _ => throw new DeserializationException("Cannot turn JsValue into a Date: " + value)
   } }
 
-  implicit val itemFormat = jsonFormat6(Item)
+  implicit val itemFormat = jsonFormat7(Item)
 
   def asImmutable[A, B](m: MMap[A, B]) = Map(m.toList : _*)
   def isTransfer(i: Item) = i.category == List()
@@ -35,6 +35,7 @@ object Protocol extends cc.spray.json.DefaultJsonProtocol {
           .rename("Payee", "payee").transform("payee", (str:String) => if (str==null) "" else str)
           .rename("Outflow", "outflow").transform("outflow", (str:String) => str.replace("$", "").toDouble)
           .rename("Inflow", "inflow").transform("inflow", (str:String) => str.replace("$", "").toDouble)
+          .add("adjustment" -> 0d)
 
     jsons.map(_.convertTo[Item]).filterNot(isTransfer(_)).sortBy(_.date)
   }

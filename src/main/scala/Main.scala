@@ -20,6 +20,13 @@ object Main {
      incomes.map(_.absorbExpensesIntoIncome))
   }
 
+  def layoutMonth(items: List[Item]) = {
+    val (expenses, incomes) = groupByCategory(items)
+//    Layout(expenses)
+//    Layout(incomes)
+    Layout(expenses)
+  }
+
 
   def main(args: Array[String]) {
     val homeDir = System.getenv("HOME")
@@ -28,8 +35,7 @@ object Main {
     val data = groupByMonth(Protocol.read(files.last))
 
     val june = data.toList(data.size-6)._2
-    val (expenses, incomes) = groupByCategory(june.filter(_.amt > 0))
-    val result = Layout(expenses)
+    val result = layoutMonth(june)
     println("DONE " + new File(".").getCanonicalPath)
     FileUtils.writeStringToFile(new File("output.log"), result.map(_.toString).mkString("\n"))
     FileUtils.writeStringToFile(new File("output.ss"), result.map(_.toScheme).mkString("(", "\n", ")"))
