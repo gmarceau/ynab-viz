@@ -9,10 +9,12 @@ object Layout {
   val targetRatio = 8.5 / 11
 
   private object fitnessWeights {
-    val targetRatio = 1d
+    val targetRatio = 0.3d
     val dateAlignment = 1d * (1 / millisecondsPerDay)
   }
 
+
+  val dateAlignmentBias = 0
 
   def apply(cats: List[Category]): List[Block] = {
 
@@ -29,46 +31,42 @@ object Layout {
     val widthPerDay = width / days
 
     val amtToArea = width / topAmt
-    println("amtToArea = " + amtToArea)
 
-    def score(b: Block, nextDate: Option[Date]): Double = {
+    def score(b: Block, nextDates: List[Date]): Double = {
       // smaller is better, zero is best
-      val x = fitnessWeights.targetRatio * abs(b.ratio - targetRatio)
-      val y = nextDate match { case Some(d) =>
-        val blockRightEdgeDate = b.weightedDate + b.width / widthPerDay
-        fitnessWeights.dateAlignment * max(0, blockRightEdgeDate - d)
-      case None => 0
-      }
+      val x = fitnessWeights.targetRatio * abs(b.idealWidth(targetRatio) - b.width)
+      val y = (for(d <- nextDates) yield {
+                val blockRightEdgeDate = b.item.date + b.width / widthPerDay
+                fitnessWeights.dateAlignment * max(0, blockRightEdgeDate - d)
+              }).sum
       val result = x + y
-      println("  score %.2f + %.2f = %f  : %s".format(x, y, result, b))
+      println("  score %.2f + %.2f = %f  :  %s".format(x, y, result, b))
       result
     }
 
-    def smallerDate(fst: Option[Date], snd: Option[Date]): Option[Date] = (fst, snd) match {
-      case (None, None) => None
-      case (None, d) => d
-      case (d, None) => d
-      case (Some(a), Some(b)) => Some(List(a, b).min)
-    }
-
     def optimizeOnce(b: Block, above: List[Block], nextDateHere: Option[Date]): (Block, List[Block]) = {
-      println("optimizeOnce " + b)
-      val nextDate = smallerDate(above.headOption.map(_.item.date), nextDateHere)
-      def option(candidate: Block) = Some(score(candidate, nextDate) -> candidate)
-      val optionNoop = option(b)
-      val optionWiden = option(b.widen)
-      val optionAdd = if (above.isEmpty) None else option(b.add(above.head))
 
-      val choice = List(optionNoop, optionWiden, optionAdd).maxBy(_.map(-_._1)).get
-      if (optionAdd.isDefined && (choice eq optionAdd.get))
-        (choice._2, above.tail)
-      else (choice._2, above)
+      def option(candidate: Block, bias: Double, nextDates: List[Date], r: List[Block]) =
+        Some(score(candidate, nextDates) - bias, candidate, r)
 
+      val aboveDate = above.headOption.map(_.firstDate).toList
+      println("optimizeOnce: %s %s".format(aboveDate, nextDateHere))
+      val bothDates = aboveDate ++ nextDateHere.toList
+
+      val optionAdd = if (above.isEmpty) None
+                      else option(b.add(above.head), dateAlignmentBias, nextDateHere.toList, above.tail)
+
+      val optionWiden = option(b.widen, 0, bothDates, above)
+
+      val optionNoop = option(b, 0, bothDates, above)
+
+      val choice = List(optionAdd, optionWiden, optionNoop).maxBy(_.map(-_._1)).get
+      (choice._2, choice._3)
     }
 
     def optimize(b: Block, above: List[Block], nextDate: Option[Date]): (Block, List[Block]) = {
       val (newB, newOther) = optimizeOnce(b, above, nextDate)
-      if (b eq newB) (newB, newOther)
+      if (b eq newB) (b, newOther)
       else optimize(newB, newOther, nextDate)
     }
 
@@ -94,7 +92,10 @@ object Layout {
       case hd :: tl =>
         val sub = loop(tl)
         println("== zipRow " + hd.name + "==")
-        zipRows(makeBlocks(hd), sub)
+        val result = zipRows(makeBlocks(hd), sub)
+        println("== zipRow result " + hd.name + "==")
+        result.foreach(println)
+        result
     }
     loop(sortedCats)
   }
