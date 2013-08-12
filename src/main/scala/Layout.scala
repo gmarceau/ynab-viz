@@ -9,7 +9,7 @@ object Layout {
   val targetRatio = 8.5 / 11  // height over width
 
   private object fitnessWeights {
-    val targetRatio = 0.5d
+    val targetRatio = 0.1d
     val dateAlignment = 10d
   }
 
@@ -18,7 +18,7 @@ object Layout {
 
   def apply(cats: List[Category]): List[Block] = {
 
-    val sortedCats = cats.sortBy(_.items.size) // .drop(cats.size-5)
+    val sortedCats = cats.sortBy(_.items.size)
 
     val spacerAtTopCategory = 1.5
     val topSize = sortedCats.last.items.size
@@ -88,7 +88,7 @@ object Layout {
       def loop(here: List[Block], above: List[Block], hereZ: Double, aboveZ: Double): List[Block] = here match {
         case Nil => List()
         case hd :: Nil =>
-          List(above.foldLeft(hd) { _.add(_) })
+          List(optimizeLone(above.foldLeft(hd) { _.add(_) }))
         case hd :: tail =>
           println("loop " + hereZ + " " + aboveZ)
           val (b, restAbove) = optimize(hd, above, hereZ/startHereZ, aboveZ/startAboveZ)
@@ -98,17 +98,17 @@ object Layout {
       loop(here, above, here.size-1, above.size)
     }
 
-    def optimizeStart(b: Block): (Block, List[Block]) = {
-      val (newB, newAbove) = optimizeOnce(b, List(), 0, 0)
-      if (b eq newB) (b, newAbove)
-      else optimizeStart(newB)
+    def optimizeLone(b: Block): Block = {
+      val (newB, _) = optimizeOnce(b, List(), 0, 0)
+      if (b eq newB) b
+      else optimizeLone(newB)
     }
 
 
     def makeBlocks(c: Category) = for(i <- c.items) yield Block(i.amt * amtToArea, i)
     def loop(cats: List[Category]): List[Block] = cats match {
       case Nil => List()
-      case hd :: Nil => makeBlocks(hd).map(optimizeStart).map(_._1)
+      case hd :: Nil => makeBlocks(hd).map(optimizeLone)
       case hd :: tl =>
         val sub = loop(tl)
         println("== zipRow " + hd.name + "==")

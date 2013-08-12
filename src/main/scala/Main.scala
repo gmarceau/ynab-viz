@@ -34,8 +34,8 @@ object Main {
     val files = dir.listFiles().filter(_.getName.matches(".*-Register\\.csv")).sortBy(_.lastModified())
     val data = groupByMonth(Protocol.read(files.last))
 
-    val june = data.toList(data.size-6)._2
-    val result = layoutMonth(june)
+    val month = data.toList(data.size-3)._2
+    val result = layoutMonth(month)
     println("DONE " + new File(".").getCanonicalPath)
     FileUtils.writeStringToFile(new File("output.log"), result.map(_.toString).mkString("\n"))
     FileUtils.writeStringToFile(new File("output.ss"), result.map(_.toScheme).mkString("(", "\n", ")"))
