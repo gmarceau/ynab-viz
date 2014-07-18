@@ -6,7 +6,8 @@ import DateConversion._
 object Layout {
   val millisecondsPerDay = 1000d * 60 * 60 * 24
 //  private val targetRatio = 1 / 1.61803398875
-  val targetRatio = 8.5 / 11  // height over width
+  val targetRatio = 4  // height over width
+//  val targetRatio = 8.5 / 11  // height over width
 
   private object fitnessWeights {
     val targetRatio = 0.1d
@@ -18,7 +19,7 @@ object Layout {
 
   def apply(cats: List[Category]): List[Block] = {
 
-    val sortedCats = cats.sortBy(_.items.size)
+    val sortedCats = cats.sortBy(_.items.size).drop(3) // .take(cats.size -1)
 
     val spacerAtTopCategory = 1.5
     val topSize = sortedCats.last.items.size
