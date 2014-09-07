@@ -57,7 +57,7 @@
   
   (define s (/ (apply + (hash-values averages)) n))
   (define result (recur s s (reverse sorted-averages)))
-  (reverse result))
+  (reverse (map reverse result)))
   
   
   
@@ -68,19 +68,26 @@
 (define height (sqrt (* average-income ratio)))
 (define width (/ average-income height))
 
+(define color-scale 
+  (map (// apply make-object color% <>)
+       '((0 226 255)
+	 (0 198 255)
+	 (0 169 255)
+	 (0 141 255)
+	 (0 127 255)
+	 (0 98 255)
+	 (98 255 155)
+	 (198 255 56)
+	 (255 56 0)
+	 (255 102 0))))
+
 (define colors
-  (hash "savings" (make-object color% 229 255 213)
-        "Communication" (make-object color% 0 226 255)
-        "Stuff" (make-object color% 0 198 255)
-        "Generosity" (make-object color% 0 169 255)
-        "Health" (make-object color% 0 141 255)
-        "Transport" (make-object color% 0 127 255)
-        "Joy" (make-object color% 0 98 255)
-        "Food" (make-object color% 98 255 155)
-        "The Man" (make-object color% 198 255 56)
-        "House & Upkeep" (make-object color% 255 56 0)
-        "Momentous" (make-object color% 255 102 0)
-        ))
+  (list->hash
+   (cons (list "savings" (make-object color% 229 255 213))
+         (for/list ([c color-scale]
+                    [cat (flatten grouped-categories)])
+           (list cat c)))))
+  
 
 (define (draw-cell h a c)
   (if (or (= h 0) (= a 0))
@@ -100,11 +107,12 @@
   (apply vl-append (map draw-row groups colors)))
 
 (define (draw-month month)
+  (define rd-g-cats (map reverse grouped-categories))
   (define s
     (draw-stack
-     (for/list ([cats grouped-categories])
+     (for/list ([cats rd-g-cats])
        (map (// .. month 'expenses <>) cats))
-     (mapmap  (// .. colors <>) grouped-categories)))
+     (mapmap  (// .. colors <>) rd-g-cats)))
   
   (vc-append
    (inset (text (.. month 'name)) 0 (* width 1/3))
@@ -133,7 +141,13 @@
   (define zero-line (cellophane (linewidth 2 (colorize (hline (+ (pict-width stacks) (* width 2/3)) 1) "darkgray")) 0.4))
   (panorama (pin-over stacks (* width -1/3) (- (pict-height stacks) (/ mx-burn width) 1) zero-line)))
   
-(draw-months months)
+(define legend
+  (apply vl-append 10
+         (for/list ([c (flatten grouped-categories)])
+           (hb-append 10 (colorize (filled-rectangle 15 15) (.. colors c))
+                      (text c)))))
+
+(inset (ht-append 10 legend (draw-months months)) 50)
 
 
 
