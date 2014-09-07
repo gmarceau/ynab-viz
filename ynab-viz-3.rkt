@@ -83,7 +83,7 @@
 
 (define colors
   (list->hash
-   (cons (list "savings" (make-object color% 229 255 213))
+   (cons (list "Savings" (make-object color% 229 255 213))
          (for/list ([c color-scale]
                     [cat (flatten grouped-categories)])
            (list cat c)))))
@@ -118,7 +118,7 @@
    (inset (text (.. month 'name)) 0 (* width 1/3))
    (if (positive? (month-savings month))
        (vl-append 
-        (draw-row (list (month-savings month)) (list (.. colors "savings")))
+        (draw-row (list (month-savings month)) (list (.. colors "Savings")))
         s)
       s)))
    
@@ -142,12 +142,21 @@
   (panorama (pin-over stacks (* width -1/3) (- (pict-height stacks) (/ mx-burn width) 1) zero-line)))
   
 (define legend
-  (apply vl-append 10
-         (for/list ([c (flatten grouped-categories)])
-           (hb-append 10 (colorize (filled-rectangle 15 15) (.. colors c))
-                      (text c)))))
+  (let ()
+    (define (item category) 
+      (hb-append 10 (colorize (filled-rectangle 15 15) (.. colors category))
+                      (text category)))
+    (vl-append 
+     17
+     (item "Savings")
+     (apply vl-append 10
+            (map item (flatten grouped-categories))))))
 
-(inset (ht-append 10 legend (draw-months months)) 50)
+(define result (inset (ht-append 10 legend (draw-months months)) 50))
+
+result
+
+
 
 
 
