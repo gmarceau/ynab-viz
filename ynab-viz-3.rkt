@@ -2,11 +2,14 @@
 (require slideshow/pict
          gmarceau/all
          racket/draw
+
          )
+
+(require (prefix-in srfi: srfi/48))
 
 (define dirname "C:/Documents/Dropbox/YNAB")
 
-(define filename "Linnea and Guillaume-Report-Income v. Expense Aug '13 to Aug '14.processed.csv")
+(define filename "Linnea and Guillaume-Report-Income v. Expense Aug '13 to Sep '14.processed.csv")
 
 (define lines 
   (map (lambda (line) (string-split line ","))
@@ -18,9 +21,9 @@
 (define incomes (for/list ([i (rest (second lines))]) (string->number i)))
 
 (define (parse-months lines)
-  (for/list ([column (transpose (map rest (rest lines)))]
+  (for/list ([column (rest (transpose (map rest (rest lines))))] ;; drops the first month: live on the previous' month income.
                           [income incomes]
-                          [n month-names])
+                          [n (rest month-names)])
                  (hash 'name n 
                        'income income 
                        'expenses (list->hash (rest (map list categories (map (lambda-pipe (string->number <>) (- <>)) column)))))))
@@ -106,6 +109,16 @@
 (define (draw-stack groups colors)
   (apply vl-append (map draw-row groups colors)))
 
+(define (draw-saving-rate month)
+  (text (format "~a%" (round (inexact->exact (* 100 (month-savings-rate month))))) null 9))
+
+(define (draw-savings month)
+  (define r (draw-row (list (month-savings month)) (list (.. colors "Savings"))))
+  
+  (clip (refocus (cc-superimpose r (cellophane (draw-saving-rate month) 0.5))
+           r))
+  )
+
 (define (draw-month month)
   (define rd-g-cats (map reverse grouped-categories))
   (define s
@@ -117,9 +130,7 @@
   (vc-append
    (inset (text (.. month 'name)) 0 (* width 1/3))
    (if (positive? (month-savings month))
-       (vl-append 
-        (draw-row (list (month-savings month)) (list (.. colors "Savings")))
-        s)
+       (vl-append (draw-savings month) s)
       s)))
    
 (define (month-expenses m)
@@ -127,7 +138,7 @@
 (define (month-savings m)
   (- (.. m 'income) (month-expenses m)))
 (define (month-savings-rate m)
-  (/ (month-savings m) (month-expenses m)))
+  (/ (month-savings m) (.. m 'income)))
 
 (define (draw-months months)
   (define mx-burn (- (min 0 (apply min (map month-savings months)))))
@@ -137,7 +148,8 @@
            (for/list ([m months])
              (define delta (+ mx-burn (min 0 (month-savings m))))
              (vl-append (draw-month m)
-                        (colorize (blank width (/ delta width)) "red")))))
+                        (colorize (blank width (/ delta width)) "red"))
+             )))
   (define zero-line (cellophane (linewidth 2 (colorize (hline (+ (pict-width stacks) (* width 2/3)) 1) "darkgray")) 0.4))
   (panorama (pin-over stacks (* width -1/3) (- (pict-height stacks) (/ mx-burn width) 1) zero-line)))
   
@@ -152,7 +164,12 @@
      (apply vl-append 10
             (map item (flatten grouped-categories))))))
 
-(define result (inset (ht-append 10 legend (draw-months months)) 50))
+(define result (inset 
+                (ht-append 
+                 10
+                 legend
+                 (draw-months months)) 
+                50))
 
 result
 
