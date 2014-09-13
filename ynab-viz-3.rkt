@@ -9,7 +9,7 @@
 
 (define dirname "C:/Documents/Dropbox/YNAB")
 
-(define filename "Linnea and Guillaume-Report-Income v. Expense Aug '13 to Sep '14.processed.csv")
+(define filename "Linnea and Guillaume-Report-Income v. Expense Aug '13 to Sep '14.csv")
 
 (define lines 
   (map (lambda (line) (string-split line ","))
@@ -31,7 +31,7 @@
 (define (absorb-refunds m)
   (define sum (apply + (filter negative? (hash-values (.. m 'expenses)))))
   (pipe m 
-        (!! <> 'income (+ (.. m 'income) sum))
+        (!! <> 'income (- (.. m 'income) sum))
         (!! <> 'expenses (hash-map-values:h (.. m 'expenses) (// max <> 0)))))
   
 (define months (map absorb-refunds (parse-months lines)))
