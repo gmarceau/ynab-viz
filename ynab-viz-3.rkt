@@ -9,16 +9,48 @@
 
 (define dirname "C:/Documents/Dropbox/YNAB")
 
-(define filename "Linnea and Guillaume-Report-Income v. Expense Aug '13 to Sep '14.csv")
+(define filename "Linnea and Guillaume-Report-Income v. Expense Apr '12 to Nov '14.csv")
 
-(define lines 
+(define lines
   (map (lambda (line) (string-split line ","))
        (file->lines (build-path dirname filename))))
 
-(define categories (map first (rest lines)))
+(define (remove-noisy-quotes str)
+  (define m (regexp-match "^\"(.*)\"" str))
+  (if m (second m) str))
 
-(define month-names (rest (first lines)))
-(define incomes (for/list ([i (rest (second lines))]) (string->number i)))
+(define (remove-dollar str) (regexp-replace "\\$" str ""))
+(define (parse-numbers str) (or (string->number str) str))
+
+(define (remove-noise lines) 
+  (define clean-cells (mapmap (compose parse-numbers
+                                       remove-noisy-quotes
+                                       remove-dollar)
+                              lines))
+  (define headers (first clean-cells))
+  (define exclude (set "All Income Sources" "Expenses"))
+  (define (excluded? ln) (set-member? exclude (first ln) ))
+  (define relevant-lines
+    (filter-not
+     excluded?
+     (filter-map (lambda (ln) 
+                   (define m (regexp-match "^Total (.*)" (first ln)))
+                   (and m (cons (second m) (rest ln))))
+                 clean-cells)))
+  (define relevant-columns
+    (map (// drop-right <> 3) (cons headers relevant-lines)))
+  relevant-columns)
+
+(define (remove-empty-months lines)
+  (define (is-empty? col) (andmap (// equal? <> 0.0) (rest col)))
+  (transpose (filter-not is-empty? (transpose lines))))
+
+(define data (remove-empty-months (remove-noise lines)))
+
+(define categories (map first (rest data)))
+
+(define month-names (rest (first data)))
+(define incomes (for/list ([i (rest (second data))]) i))
 
 (define (parse-months lines)
   (for/list ([column (rest (transpose (map rest (rest lines))))] ;; drops the first month: live on the previous' month income.
@@ -26,7 +58,7 @@
                           [n (rest month-names)])
                  (hash 'name n 
                        'income income 
-                       'expenses (list->hash (rest (map list categories (map (lambda-pipe (string->number <>) (- <>)) column)))))))
+                       'expenses (list->hash (rest (map list categories (map (// - <>) column)))))))
   
 (define (absorb-refunds m)
   (define sum (apply + (filter negative? (hash-values (.. m 'expenses)))))
@@ -34,7 +66,7 @@
         (!! <> 'income (- (.. m 'income) sum))
         (!! <> 'expenses (hash-map-values:h (.. m 'expenses) (// max <> 0)))))
   
-(define months (map absorb-refunds (parse-months lines)))
+(define months (map absorb-refunds (parse-months data)))
 
 (define averages 
   (list->hash
@@ -167,19 +199,8 @@
 (define result (inset 
                 (ht-append 
                  10
-                 legend
-                 (draw-months months)) 
+                 (draw-months months)
+                 legend) 
                 50))
 
 result
-
-
-
-
-
-
-
-
-
-
-
