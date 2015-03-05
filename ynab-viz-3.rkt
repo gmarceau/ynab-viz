@@ -9,7 +9,7 @@
 
 (define dirname "C:/Documents/Dropbox/YNAB")
 
-(define filename "Linnea and Guillaume-Report-Income v. Expense Apr '12 to Nov '14.csv")
+(define filename "Linnea and Guillaume-Report-Income v. Expense Jun '12 to Feb '15.csv")
 
 (define lines
   (map (lambda (line) (string-split line ","))
@@ -34,8 +34,8 @@
     (filter-not
      excluded?
      (filter-map (lambda (ln) 
-                   (define m (regexp-match "^Total (.*)" (first ln)))
-                   (and m (cons (second m) (rest ln))))
+                   (define m (regexp-match "^Total (.*)|(Uncategorized) Transactions" (first ln)))
+                   (and m (cons (or (second m) (third m)) (rest ln))))
                  clean-cells)))
   (define relevant-columns
     (map (// drop-right <> 3) (cons headers relevant-lines)))
@@ -105,7 +105,8 @@
 
 (define color-scale 
   (map (// apply make-object color% <>)
-       '((0 226 255)
+       '((0 0 0)
+         (0 226 255)
 	 (0 198 255)
 	 (0 169 255)
 	 (0 141 255)
