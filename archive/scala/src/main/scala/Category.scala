@@ -1,3 +1,4 @@
+/*
 
 case class Category(name: String, items: List[Item]) {
   def expenses = items.filter(_.amt > 0).map(_.amt).sum
@@ -14,3 +15,4 @@ case class Category(name: String, items: List[Item]) {
   }
 }
 
+*/

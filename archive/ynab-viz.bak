@@ -1,0 +1,182 @@
+#lang racket
+
+(require gmarceau/all
+         slideshow/pict
+         racket/date)
+
+(define data-dir "C:\\Documents\\Dropbox\\YNAB\\Exports")
+(define data-file "Our Budget as of 2013-01-17 1132 PM-Register.csv")
+
+(define (date* d m y)
+  (date 0 0 0 d m y 0 0 #f 0))
+
+(define (parse-date str)
+  (match-define (list m d y) (regexp-split "/" str))
+  (define s->n string->number)
+  (date* (s->n d) (s->n m) (s->n y)))
+
+(define (parse-amount r)
+  (define (parse-dollar str)
+    (string->number (regexp-replace* "[$, ]" str "")))
+  
+  (- (parse-dollar (.. r 'Outflow))
+     (parse-dollar (.. r 'Inflow))))
+
+
+(define boring-memos
+  '("DBT CRD"
+    "POS DEB"
+    "PPD"
+    "Payroll"
+    "Paypal"
+    "PAYPAL"
+    "Payee"
+    "T MOBILE"
+    "ATM FEE"
+    "AMAZON"
+    "Amazon"
+    "Check "
+    "CREDIT"
+    "DDA"
+    "DEBIT"
+    "e-Pay"
+    "Interest Deposit"
+    "KEY FOODS"
+    "FOODTOWN"
+    "Adjustment"
+    "MTA"
+    "Transfer"
+    "USPS"))
+
+(define (boring? t) (or (equal? "" t) (ormap (// regexp-match <> t) boring-memos)))
+
+(define (find-label rows)
+  (pipe rows
+        (table-add-column
+         <> 'Label
+         (lambda (r) 
+           (string-downcase (first (filter-not boring? (map (// .. r <>) '(Memo Payee |Sub Category|)))))))
+        (table-remove-column <> 'Memo 'Payee)))
+  
+  
+(define data
+  (pipe (call-with-input-file (build-path data-dir data-file) csv->table)
+        (table-update <> 'Date parse-date)
+        (table-add-column <> 'Amount parse-amount)
+        (select <>
+                '|Master Category|
+                (negate (match?-lambda (or "Income" "")))
+                '|Sub Category|
+                (negate (match?-lambda "Rent & Shared House Expenses"))
+                'Amount positive?
+                 #:fields
+                 '(Date |Master Category| |Sub Category| Amount Payee Memo)
+                 #:sort 'Date #:sort-key date->seconds)
+        (find-label <>)))
+
+(define master-category-colors 
+  (list->hash 
+   '(("Communication" "MidnightBlue")
+     ("House & Upkeep" "GreenYellow")
+     ("Food" "Coral")
+     ("Stuff" "LightGray")
+     ("Generosity" "Yellow")
+     ("Joy" "HotPink")
+     ("The Man" "DarkGray")
+     ("Health" "Yellow")
+     ("Transport" "SaddleBrown"))))
+
+(define color-scaling-min 0.7)
+(define color-scaling-max 1.5)
+
+(define sub-category-colors
+  (list->hash
+   (for/list ([cat (hash-keys master-category-colors)])
+     (define subcats (unique (select data '|Master Category| cat #:field '|Sub Category|)))
+     (list cat 
+           (list->hash
+            (for/list ([subcat (sort subcats < #:key string-length)]
+                       [s (in-range color-scaling-min color-scaling-max 
+                                    (/ (- color-scaling-max color-scaling-min)
+                                       (length subcats)))])
+              (list subcat (scale-color s (.. master-category-colors cat)))))))))
+      
+
+(define (colorize-by-cat pic master-cat sub-cat) 
+  (colorize pic (.. sub-category-colors master-cat sub-cat)))
+
+(define min-label 5)
+(define text-offset 4)
+
+(define (add-label pic r) 
+  (define t (rotate (text (or (.. r 'Label))) (/ pi 2)))
+  (if (< (.. r 'Amount) min-label)
+      pic
+      (clip
+       (refocus
+        (pin-over pic
+                  (sub1 text-offset)
+                  (- (pict-height pic) (pict-height t) text-offset) 
+                  t)
+        pic))))
+
+
+(define pixels-per-dollar 15)
+
+(define dollar-edge-snap (sqrt 25))
+
+(define max-amount (apply max (column data 'Amount)))
+
+(define (round-to-nearest v rounding)
+  (* (round (/ v rounding)) rounding))
+
+(define (make-icon r)
+  (define v-dollar (max dollar-edge-snap (round-to-nearest (sqrt (.. r 'Amount)) dollar-edge-snap)))
+  (define h-dollar (/ (.. r 'Amount) v-dollar))
+  (define v-pixels (* pixels-per-dollar v-dollar))
+  (define h-pixels (* pixels-per-dollar h-dollar))
+  (pipe (filled-rectangle h-pixels v-pixels)
+        (colorize-by-cat <> (.. r '|Master Category|) (.. r '|Sub Category|))
+        (add-label <> r)
+        (cc-superimpose <> (rectangle h-pixels v-pixels))))
+
+(define (group-by-month rows)
+  (define edges (unique (map (lambda (d) (date->seconds (date* 1 (date-month d) (date-year d)))) (column rows 'Date))))
+  (define-values (r _)
+    (for/fold ([result empty] [rows (table-update rows 'Date date->seconds)]) 
+      ([e (rest edges)])
+      (define-values (in out) (partition (lambda (r) (< (.. r 'Date) e)) rows))
+      (values (cons in result) out)))
+  (reverse r))
+
+(define (line-between icons)
+  (define h (apply max (map pict-height (flatten icons))))
+  (define with-lines (add-between icons (vline (* pixels-per-dollar 3) h)))
+  (apply hb-append pixels-per-dollar (flatten with-lines)))
+
+
+(define (group-by-categories cats rows)
+  (map (// select rows '|Master Category| <>) cats))
+
+(define (group-by-month-&-category rows)
+  ;; (listof (hash/c symbol? row?))
+  (define categories (unique (column rows '|Master Category|)))
+  (define sorted-categories (sort categories > 
+                                  #:key (lambda (c) (apply + (select rows '|Master Category| c #:field 'Amount)))
+                                  #:cache-keys? #t))
+
+  (define by-month (group-by-month rows))
+  (map (// group-by-categories sorted-categories <>) by-month))
+
+(define result
+  (pipe (group-by-month-&-category data)
+        (map^3 make-icon <>)
+        (mapmap (// apply hb-append -1 <>) <>)
+        (map (// apply vl-append pixels-per-dollar <>) <>)
+        (line-between <>)
+        #;(rotate <> (- (/ pi 2)))))
+
+(save-to-svg result "ynab-viz.svg")
+;result
+'done
+
