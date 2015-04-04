@@ -2,14 +2,14 @@
 (require slideshow/pict
          gmarceau/all
          racket/draw
-
+         (only-in 2htdp/image save-svg-image save-image)
          )
 
 (require (prefix-in srfi: srfi/48))
 
 (define dirname "C:/Documents/Dropbox/YNAB")
 
-(define filename "Linnea and Guillaume-Report-Income v. Expense Jun '12 to Feb '15.csv")
+(define filename "Linnea and Guillaume-Report-Income v. Expense Jun '12 to Apr '15.csv")
 
 (define lines
   (map (lambda (line) (string-split line ","))
@@ -105,7 +105,7 @@
 
 (define color-scale 
   (map (// apply make-object color% <>)
-       '((0 0 0)
+       '((240 250 255)
          (0 226 255)
 	 (0 198 255)
 	 (0 169 255)
@@ -205,3 +205,17 @@
                 50))
 
 result
+
+(define (save-svg pict filename)
+  (define w (inexact->exact (ceiling (pict-width pict))))
+  (define h (inexact->exact (ceiling (pict-height pict))))
+  (define port (open-output-file filename #:exists 'replace))
+  (define svg-dc (new svg-dc% [width w] [height h] [output port]))
+  (send svg-dc start-doc "")
+  (send svg-dc start-page)
+  (draw-pict pict svg-dc 0 0)
+  (send svg-dc end-page)
+  (send svg-dc end-doc)
+  )
+
+(save-svg result "ynab-viz-3-result.svg")
