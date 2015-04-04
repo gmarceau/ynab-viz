@@ -2,7 +2,7 @@
 (require slideshow/pict
          gmarceau/all
          racket/draw
-         (only-in 2htdp/image save-svg-image save-image)
+         (only-in 2htdp/image save-image)
          )
 
 (require (prefix-in srfi: srfi/48))
@@ -219,3 +219,4 @@ result
   )
 
 (save-svg result "ynab-viz-3-result.svg")
+(save-image (pict->bitmap result) "ynab-viz-3-result.png")
