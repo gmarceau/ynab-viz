@@ -9,7 +9,7 @@
 
 (define dirname "C:/Documents/Dropbox/YNAB")
 
-(define filename "Linnea and Guillaume-Report-Income v. Expense Jun '12 to Apr '15.csv")
+(define filename "Linnea and Guillaume-Report-Income v. Expense Apr '12 to Jan '16.csv")
 
 (define lines
   (map (lambda (line) (string-split line ","))
@@ -220,3 +220,4 @@ result
 
 (save-svg result "ynab-viz-3-result.svg")
 (save-image (pict->bitmap result) "ynab-viz-3-result.png")
+
