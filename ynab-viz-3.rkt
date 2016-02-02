@@ -9,7 +9,7 @@
 
 (define dirname "C:/Documents/Dropbox/YNAB")
 
-(define filename "Linnea and Guillaume-Report-Income v. Expense Apr '12 to Jan '16.csv")
+(define filename "Linnea and Guillaume-Report-Income v. Expense Apr '12 to Feb '16.csv")
 
 (define lines
   (map (lambda (line) (string-split line ","))
@@ -105,17 +105,21 @@
 
 (define color-scale 
   (map (// apply make-object color% <>)
-       '((240 250 255)
-         (0 226 255)
-	 (0 198 255)
-	 (0 169 255)
-	 (0 141 255)
-	 (0 127 255)
-	 (0 98 255)
-	 (98 255 155)
-	 (198 255 56)
-	 (255 56 0)
-	 (255 102 0))))
+       '(
+         (253 254 254)
+         (231 132 179)
+         (210 11 128)
+         (98 33 133)
+         (33 100 171)
+         (22 169 236)
+         (26 166 117)
+         (27 163 59)
+         (191 212 50)
+         (244 209 47)
+         (235 142 39)
+         (185 87 38)
+         (117 25 28)
+         )))
 
 (define colors
   (list->hash
