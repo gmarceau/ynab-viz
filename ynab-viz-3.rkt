@@ -7,9 +7,9 @@
 
 (require (prefix-in srfi: srfi/48))
 
-(define dirname "C:/Documents/Dropbox/YNAB")
+(define dirname "/Users/gmarceau/Dropbox (Personal)/YNAB")
 
-(define filename "Linnea and Guillaume-Report-Income v. Expense Apr '12 to Feb '16.csv")
+(define filename "ynab-export--income-vs-expenses.csv")
 
 (define lines
   (map (lambda (line) (string-split line ","))
