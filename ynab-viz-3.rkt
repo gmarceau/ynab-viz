@@ -7,7 +7,7 @@
 
 (require (prefix-in srfi: srfi/48))
 
-(define dirname "/Users/gmarceau/Dropbox (Personal)/YNAB")
+(define dirname "/Users/gmarceau/Dropbox/YNAB")
 
 (define filename "ynab-export--income-vs-expenses.csv")
 
@@ -49,6 +49,7 @@
 
 (define categories (map first (rest data)))
 
+
 (define month-names (rest (first data)))
 (define incomes (for/list ([i (rest (second data))]) i))
 
@@ -76,7 +77,6 @@
   
 (define sorted-averages (sort (hash->list averages) < #:key second))
 
-
 (define (group n lst)
 
   (define (recur target left lst)
@@ -97,7 +97,7 @@
   
   
 (define grouped-categories (group 3 sorted-averages))
-        
+
 (define ratio 2.3)
 (define average-income (apply average (column months 'income)))
 (define height (sqrt (* average-income ratio)))
@@ -118,7 +118,7 @@
          (204 102 135)
          (230 182 199)
          (233 126 113)
-         
+         (230 235 171)
          )))
 
 (define colors
@@ -127,7 +127,6 @@
          (for/list ([c color-scale]
                     [cat (flatten grouped-categories)])
            (list cat c)))))
-  
 
 (define (draw-cell h a c)
   (if (or (= h 0) (= a 0))
